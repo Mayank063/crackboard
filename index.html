@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CrackBoard — Interview Question Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-mark">CrackBoard</div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" data-view="board">Board</button>
+    <button class="nav-tab" data-view="patterns">Patterns</button>
+    <button class="nav-tab" data-view="compare">Compare</button>
+    <button class="nav-tab" data-view="practice">Practice</button>
+    <button class="nav-tab" data-view="plan">Study Plan</button>
+    <button class="nav-tab" data-view="progress">Progress</button>
+  </div>
+  <div class="nav-search">
+    <input id="searchInput" type="text" placeholder="Find a company…" autocomplete="off" />
+    <div class="search-suggestions hidden" id="searchSuggestions"></div>
+  </div>
+  <div class="nav-meta"><span id="navCount">—</span> companies tracked</div>
+  <div class="streak-badge" id="streakBadge">🔥 <span id="streakCount">0</span>d</div>
+</nav>
+
+<header class="hero">
+  <div class="hero-copy">
+    <h1>Stop grinding at random.<br>Prep for the company in front of you.</h1>
+    <p>CrackBoard pulls together which questions actually get asked, at which companies, and how often — so your practice time goes where it counts.</p>
+    <div class="quick-picks" id="quickPicks"></div>
+  </div>
+  <div class="hero-stamp">
+    <div class="stamp-row"><span class="stamp-num" id="statOrgs">0</span><span class="stamp-label">companies indexed</span></div>
+    <div class="stamp-row"><span class="stamp-num" id="statProblems">0</span><span class="stamp-label">problem reports</span></div>
+    <div class="stamp-row"><span class="stamp-num" id="statSolved">0</span><span class="stamp-label">solved by you</span></div>
+    <div class="stamp-row"><span class="stamp-num">LeetCode</span><span class="stamp-label">source tags</span></div>
+  </div>
+</header>
+
+<section class="site-map">
+  <div class="site-map-head">What's on this board</div>
+  <div class="site-map-grid">
+    <div class="site-map-tile" data-tab-jump="board">
+      <div class="site-map-icon">🗂️</div>
+      <div class="site-map-title">Board</div>
+      <div class="site-map-text">All 168 companies, ranked by reported interview volume.</div>
+    </div>
+    <div class="site-map-tile" data-tab-jump="patterns">
+      <div class="site-map-icon">🧩</div>
+      <div class="site-map-title">Patterns</div>
+      <div class="site-map-text">Which DSA topics (DP, Graphs, etc.) show up most across every company.</div>
+    </div>
+    <div class="site-map-tile" data-tab-jump="compare">
+      <div class="site-map-icon">⚖️</div>
+      <div class="site-map-title">Compare</div>
+      <div class="site-map-text">Put two companies side by side — difficulty mix and shared problems.</div>
+    </div>
+    <div class="site-map-tile" data-tab-jump="practice">
+      <div class="site-map-icon">⏱️</div>
+      <div class="site-map-title">Practice</div>
+      <div class="site-map-text">Generate a timed mock set from a company's top problems.</div>
+    </div>
+    <div class="site-map-tile" data-tab-jump="plan">
+      <div class="site-map-icon">🗓️</div>
+      <div class="site-map-title">Study Plan</div>
+      <div class="site-map-text">Split a company's top problems across your remaining prep days.</div>
+    </div>
+    <div class="site-map-tile" data-tab-jump="progress">
+      <div class="site-map-icon">📊</div>
+      <div class="site-map-title">Progress</div>
+      <div class="site-map-text">See solved vs unsolved across every company you've tracked, in one place.</div>
+    </div>
+  </div>
+</section>
+
+<!-- BOARD VIEW -->
+<main class="board view" id="view-board">
+  <div class="board-head">
+    <h2>The Board</h2>
+    <span class="board-sub">ranked by reported interview volume</span>
+  </div>
+
+  <div class="card-grid" id="companyGrid"></div>
+  <p class="empty-state hidden" id="emptyState">No company matches that search.</p>
+</main>
+
+<section class="dossier hidden" id="detailPanel">
+  <div class="dossier-inner">
+    <div class="dossier-head">
+      <div>
+        <div class="dossier-eyebrow">Company file</div>
+        <h3 id="detailTitle">—</h3>
+        <div class="dossier-progress" id="dossierProgress"></div>
+      </div>
+      <button class="dossier-close" id="closeDetail" aria-label="Close">Close file</button>
+    </div>
+    <div class="dossier-list" id="problemList"></div>
+  </div>
+</section>
+
+<!-- PATTERNS VIEW -->
+<main class="board view hidden" id="view-patterns">
+  <div class="board-head">
+    <h2>Patterns</h2>
+    <span class="board-sub">DSA topics ranked by how often they show up across every tracked company</span>
+  </div>
+  <div class="pattern-list" id="patternList"></div>
+</main>
+
+<!-- COMPARE VIEW -->
+<main class="board view hidden" id="view-compare">
+  <div class="board-head">
+    <h2>Compare</h2>
+    <span class="board-sub">put two companies side by side</span>
+  </div>
+  <div class="compare-picker">
+    <select id="compareA"></select>
+    <span class="compare-vs">vs</span>
+    <select id="compareB"></select>
+  </div>
+  <div class="compare-grid" id="compareResult"></div>
+</main>
+
+<!-- PRACTICE VIEW -->
+<main class="board view hidden" id="view-practice">
+  <div class="board-head">
+    <h2>Practice</h2>
+    <span class="board-sub">generate a timed mock set from a company's top problems</span>
+  </div>
+  <div class="practice-setup">
+    <select id="practiceCompany"></select>
+    <select id="practiceCount">
+      <option value="3">3 problems</option>
+      <option value="5" selected>5 problems</option>
+      <option value="8">8 problems</option>
+    </select>
+    <select id="practiceMinutes">
+      <option value="20">20 min</option>
+      <option value="30" selected>30 min</option>
+      <option value="45">45 min</option>
+      <option value="60">60 min</option>
+    </select>
+    <select id="practiceDifficulty">
+      <option value="any" selected>Any difficulty</option>
+      <option value="Easy">Easy only</option>
+      <option value="Medium">Medium only</option>
+      <option value="Hard">Hard only</option>
+      <option value="unsolved">Unsolved only</option>
+    </select>
+    <button id="startPractice" class="practice-start">Start Practice</button>
+  </div>
+  <div class="practice-session hidden" id="practiceSession">
+    <div class="practice-timer" id="practiceTimer">30:00</div>
+    <div class="practice-list" id="practiceList"></div>
+  </div>
+</main>
+
+<!-- STUDY PLAN VIEW -->
+<main class="board view hidden" id="view-plan">
+  <div class="board-head">
+    <h2>Study Plan</h2>
+    <span class="board-sub">split a company's top problems across your remaining prep days</span>
+  </div>
+  <div class="practice-setup">
+    <select id="planCompany"></select>
+    <input type="number" id="planDays" min="1" max="14" value="5" />
+    <span class="plan-days-label">days</span>
+    <button id="generatePlan" class="practice-start">Generate Plan</button>
+  </div>
+  <p class="plan-note">Based on this company's top tracked problems (highest reported frequency first) — not the full question bank.</p>
+  <div class="plan-output" id="planOutput"></div>
+</main>
+
+<!-- PROGRESS VIEW -->
+<main class="board view hidden" id="view-progress">
+  <div class="board-head">
+    <h2>Progress</h2>
+    <span class="board-sub">solved vs unsolved across every company you've tracked</span>
+  </div>
+
+  <div class="progress-summary">
+    <div class="progress-summary-stat">
+      <div class="progress-summary-num" id="progressTotalSolved">0</div>
+      <div class="progress-summary-label">solved</div>
+    </div>
+    <div class="progress-summary-stat">
+      <div class="progress-summary-num" id="progressTotalTracked">0</div>
+      <div class="progress-summary-label">tracked problems</div>
+    </div>
+    <div class="progress-summary-stat">
+      <div class="progress-summary-num" id="progressCompaniesStarted">0</div>
+      <div class="progress-summary-label">companies started</div>
+    </div>
+    <button class="progress-reset" id="progressReset">Reset all progress</button>
+  </div>
+
+  <div class="progress-bar-overall-track">
+    <div class="progress-bar-overall-fill" id="progressOverallFill" style="width:0%"></div>
+  </div>
+
+  <div class="progress-company-list" id="progressCompanyList"></div>
+</main>
+
+<footer class="footer">
+  Data sourced from publicly reported LeetCode company tags. Frequencies are relative, not guarantees.
+</footer>
+
+<script src="data.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
