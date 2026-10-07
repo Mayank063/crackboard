@@ -8,26 +8,114 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css" />
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
 <body>
 
 <nav class="nav">
-  <div class="nav-mark">CrackBoard</div>
-  <div class="nav-tabs">
-    <button class="nav-tab active" data-view="board">Board</button>
-    <button class="nav-tab" data-view="patterns">Patterns</button>
-    <button class="nav-tab" data-view="compare">Compare</button>
-    <button class="nav-tab" data-view="practice">Practice</button>
-    <button class="nav-tab" data-view="plan">Study Plan</button>
-    <button class="nav-tab" data-view="progress">Progress</button>
+  <div class="nav-row-top">
+    <div class="nav-mark">CrackBoard</div>
+    <div class="nav-tabs">
+      <button class="nav-tab active" data-view="board">Board</button>
+      <button class="nav-tab" data-view="patterns">Patterns</button>
+      <button class="nav-tab" data-view="compare">Compare</button>
+      <button class="nav-tab" data-view="practice">Practice</button>
+      <button class="nav-tab" data-view="plan">Study Plan</button>
+      <button class="nav-tab" data-view="progress">Progress</button>
+      <button class="nav-tab" data-view="leaderboard">Leaderboard</button>
+      <button class="nav-tab" data-view="submit">Submit</button>
+      <button class="nav-tab" data-view="about">About</button>
+      <button class="nav-tab" data-view="profile">Profile</button>
+      <button class="nav-tab hidden" data-view="admin" id="adminTab">Admin</button>
+    </div>
+    <div class="nav-right">
+      <div class="theme-switcher">
+        <button class="theme-toggle-btn" id="themeToggleBtn" aria-label="Theme settings">⚙</button>
+        <div class="theme-menu hidden" id="themeMenu">
+          <button class="theme-option" data-theme="light">☀ Light</button>
+          <button class="theme-option" data-theme="dark">🌙 Dark</button>
+          <button class="theme-option active" data-theme="default">🖥 Default</button>
+        </div>
+      </div>
+      <div class="streak-badge" id="streakBadge">🔥 <span id="streakCount">0</span>d</div>
+      <div class="auth-widget">
+        <button class="auth-signin-btn" id="authSignInBtn">Sign In</button>
+        <div class="auth-user hidden" id="authUser">
+          <button class="auth-avatar-btn" id="authAvatarBtn">
+            <span class="auth-avatar" id="authAvatar">🧑</span>
+            <span id="authUsername"></span>
+          </button>
+
+          <div class="auth-dropdown hidden" id="authDropdown">
+            <div class="auth-dropdown-head">
+              <span class="auth-avatar auth-avatar-lg" id="authDropdownAvatar">🧑</span>
+              <div>
+                <div class="auth-dropdown-name" id="authDropdownName">—</div>
+              </div>
+            </div>
+
+            <div class="auth-dropdown-grid">
+              <button class="auth-dropdown-tile" data-jump="progress">
+                <span class="auth-tile-num" id="menuSolvedCount">0</span>
+                <span class="auth-tile-label">Solved</span>
+              </button>
+              <button class="auth-dropdown-tile" data-jump="progress">
+                <span class="auth-tile-num" id="menuStreakCount">🔥0</span>
+                <span class="auth-tile-label">Streak</span>
+              </button>
+              <button class="auth-dropdown-tile" data-jump="profile">
+                <span class="auth-tile-num" id="menuSubmissionCount">0</span>
+                <span class="auth-tile-label">Submitted</span>
+              </button>
+              <button class="auth-dropdown-tile" data-jump="leaderboard">
+                <span class="auth-tile-num">🏆</span>
+                <span class="auth-tile-label">Leaderboard</span>
+              </button>
+            </div>
+
+            <div class="auth-dropdown-list">
+              <button class="auth-dropdown-item" data-jump="profile">👤 View Full Profile</button>
+              <button class="auth-dropdown-item" id="authDropdownAppearance">🌙 Appearance</button>
+              <button class="auth-dropdown-item" id="authDropdownSubmit" data-jump="submit">➕ Submit a Question</button>
+              <button class="auth-dropdown-item auth-dropdown-signout" id="authSignOutBtn">↪ Sign Out</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
-  <div class="nav-search">
-    <input id="searchInput" type="text" placeholder="Find a company…" autocomplete="off" />
-    <div class="search-suggestions hidden" id="searchSuggestions"></div>
+  <div class="nav-row-bottom">
+    <div class="nav-search">
+      <input id="searchInput" type="text" placeholder="Find a company…" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-lpignore="true" />
+      <div class="search-suggestions hidden" id="searchSuggestions"></div>
+    </div>
+    <div class="nav-meta"><span id="navCount">—</span> companies tracked</div>
   </div>
-  <div class="nav-meta"><span id="navCount">—</span> companies tracked</div>
-  <div class="streak-badge" id="streakBadge">🔥 <span id="streakCount">0</span>d</div>
 </nav>
+
+<!-- AUTH MODAL -->
+<div class="auth-modal hidden" id="authModal">
+  <div class="auth-modal-box">
+    <button class="auth-modal-close" id="authModalClose">✕</button>
+    <div class="auth-tabs">
+      <button class="auth-tab active" data-auth-tab="signin">Sign In</button>
+      <button class="auth-tab" data-auth-tab="signup">Sign Up</button>
+    </div>
+    <div class="auth-panel" id="authPanelSignin">
+      <input type="email" id="signinEmail" placeholder="Email" class="auth-input" />
+      <input type="password" id="signinPassword" placeholder="Password" class="auth-input" />
+      <button class="auth-submit-btn" id="signinSubmit">Sign In</button>
+      <p class="auth-error hidden" id="signinError"></p>
+    </div>
+    <div class="auth-panel hidden" id="authPanelSignup">
+      <input type="email" id="signupEmail" placeholder="Email" class="auth-input" />
+      <input type="password" id="signupPassword" placeholder="Password (min 6 characters)" class="auth-input" />
+      <button class="auth-submit-btn" id="signupSubmit">Create Account</button>
+      <p class="auth-error hidden" id="signupError"></p>
+      <p class="auth-note">This syncs your solved progress and streak across devices, and lets you appear on the leaderboard.</p>
+    </div>
+  </div>
+</div>
 
 <header class="hero">
   <div class="hero-copy">
@@ -75,6 +163,16 @@
       <div class="site-map-icon">📊</div>
       <div class="site-map-title">Progress</div>
       <div class="site-map-text">See solved vs unsolved across every company you've tracked, in one place.</div>
+    </div>
+    <div class="site-map-tile" data-tab-jump="leaderboard">
+      <div class="site-map-icon">🏆</div>
+      <div class="site-map-title">Leaderboard</div>
+      <div class="site-map-text">Sign in to sync your progress across devices and see how you rank against others.</div>
+    </div>
+    <div class="site-map-tile" data-tab-jump="submit">
+      <div class="site-map-icon">➕</div>
+      <div class="site-map-title">Submit</div>
+      <div class="site-map-text">Signed-in users can submit a real interview question they were asked, for review.</div>
     </div>
   </div>
 </section>
@@ -207,11 +305,230 @@
   <div class="progress-company-list" id="progressCompanyList"></div>
 </main>
 
+<!-- LEADERBOARD VIEW -->
+<main class="board view hidden" id="view-leaderboard">
+  <div class="board-head">
+    <h2>Leaderboard</h2>
+    <span class="board-sub">top solvers across everyone using CrackBoard</span>
+  </div>
+  <div id="leaderboardSignedOut" class="auth-prompt hidden">
+    <p>Sign in to appear on the leaderboard and sync your progress across devices.</p>
+    <button class="practice-start" id="leaderboardSignInBtn">Sign In / Sign Up</button>
+  </div>
+  <div class="leaderboard-list" id="leaderboardList"></div>
+</main>
+
+<!-- SUBMIT VIEW -->
+<main class="board view hidden" id="view-submit">
+  <div class="board-head">
+    <h2>Submit a Question</h2>
+    <span class="board-sub">report a question you were actually asked in an interview</span>
+  </div>
+  <div id="submitSignedOut" class="auth-prompt hidden">
+    <p>Sign in to submit a question — this keeps submissions accountable.</p>
+    <button class="practice-start" id="submitSignInBtn">Sign In / Sign Up</button>
+  </div>
+  <div id="submitForm" class="submit-form">
+    <input type="text" id="submitCompany" placeholder="Company name (e.g. Google)" class="auth-input" />
+    <input type="text" id="submitTitle" placeholder="Problem title (e.g. Two Sum)" class="auth-input" />
+    <select id="submitDifficulty" class="auth-input">
+      <option value="">Difficulty (optional)</option>
+      <option value="Easy">Easy</option>
+      <option value="Medium">Medium</option>
+      <option value="Hard">Hard</option>
+    </select>
+    <input type="text" id="submitTopic" placeholder="Topic (e.g. Dynamic Programming) — optional" class="auth-input" />
+    <textarea id="submitNotes" placeholder="Any extra context — optional" class="auth-input auth-textarea"></textarea>
+    <button class="practice-start" id="submitBtn">Submit for Review</button>
+    <p class="submit-note">Submissions are reviewed manually before being added to the board — they won't appear immediately.</p>
+    <p class="auth-error hidden" id="submitError"></p>
+    <p class="auth-success hidden" id="submitSuccess">Thanks — your submission has been sent for review.</p>
+  </div>
+</main>
+
+<!-- ABOUT VIEW -->
+<main class="board view hidden" id="view-about">
+  <div class="board-head">
+    <h2>About this data</h2>
+    <span class="board-sub">where it comes from, and its limits</span>
+  </div>
+
+  <div class="about-content">
+    <div class="about-block">
+      <h4>Where the data comes from</h4>
+      <p>CrackBoard's problem data is built from a public, open-source dataset (<code>liquidslr/leetcode-company-wise-problems</code> on GitHub), which itself compiles LeetCode's own "company tags" feature — a Premium-only feature where users report which companies asked them which questions in real interviews.</p>
+    </div>
+
+    <div class="about-block">
+      <h4>What "frequency" means</h4>
+      <p>The frequency percentage shown next to each problem is a relative measure of how often that problem was reported for that company, compared to other problems in the same list — not a guarantee it will appear in your interview, and not an absolute probability.</p>
+    </div>
+
+    <div class="about-block">
+      <h4>Known limitations</h4>
+      <ul>
+        <li>Data is self-reported by users, not verified by LeetCode or the companies themselves.</li>
+        <li>We don't have an exact timestamp for when the underlying dataset was last refreshed — company interview patterns can shift over time.</li>
+        <li>Only the top 12 most-frequent problems per company are tracked here, not the full historical list.</li>
+        <li>168 well-known companies are included out of 471+ available in the source dataset, filtered for relevance.</li>
+      </ul>
+    </div>
+
+    <div class="about-block">
+      <h4>Your progress</h4>
+      <p>By default, solved status and streaks are stored only in your browser (<code>localStorage</code>) — clearing your browser data will reset it. If you sign in (top right), your progress also syncs to your account, so it carries over across devices and you'll appear on the Leaderboard.</p>
+    </div>
+  </div>
+</main>
+
+<!-- PROFILE VIEW -->
+<main class="board view hidden" id="view-profile">
+  <div class="board-head">
+    <h2>Profile</h2>
+    <span class="board-sub">your account and stats</span>
+  </div>
+
+  <div id="profileSignedOut" class="auth-prompt hidden">
+    <p>Sign in to see your profile, edit your username, and view your stats.</p>
+    <button class="practice-start" id="profileSignInBtn">Sign In / Sign Up</button>
+  </div>
+
+  <div id="profileSignedIn" class="profile-content hidden">
+    <div class="profile-card">
+      <div class="profile-field">
+        <label>Username</label>
+        <div class="profile-username-row">
+          <input type="text" id="profileUsernameInput" maxlength="30" />
+          <button id="profileSaveUsername" class="practice-start">Save</button>
+        </div>
+        <p class="profile-msg" id="profileUsernameMsg"></p>
+      </div>
+      <div class="profile-field">
+        <label>Email</label>
+        <p id="profileEmail">—</p>
+      </div>
+      <div class="profile-field">
+        <label>Member since</label>
+        <p id="profileJoined">—</p>
+      </div>
+    </div>
+
+    <div class="profile-edit-link-row">
+      <button class="profile-edit-link" id="openEditProfile">✏️ Edit Profile <span class="profile-edit-link-arrow">→</span></button>
+    </div>
+
+    <div class="progress-summary">
+      <div class="progress-summary-stat">
+        <div class="progress-summary-num" id="profileTotalSolved">0</div>
+        <div class="progress-summary-label">problems solved</div>
+      </div>
+      <div class="progress-summary-stat">
+        <div class="progress-summary-num" id="profileCurrentStreak">0</div>
+        <div class="progress-summary-label">current streak</div>
+      </div>
+      <div class="progress-summary-stat">
+        <div class="progress-summary-num" id="profileLongestStreak">0</div>
+        <div class="progress-summary-label">longest streak</div>
+      </div>
+    </div>
+
+    <div class="profile-section-head">My Submissions</div>
+    <div class="admin-list" id="profileSubmissionsList"></div>
+    <p class="progress-empty hidden" id="profileSubmissionsEmpty">You haven't submitted any questions yet — use the Submit tab to report one you were asked in an interview.</p>
+  </div>
+</main>
+
+<!-- EDIT PROFILE VIEW (separate page, opened from Profile) -->
+<main class="board view hidden" id="view-edit-profile">
+  <div class="board-head board-head-with-back">
+    <button class="edit-profile-back" id="backToProfile">← Back to Profile</button>
+    <h2>Edit Profile</h2>
+    <span class="board-sub">tell other preppers a bit about yourself</span>
+  </div>
+
+  <div class="profile-card edit-profile-card">
+    <div class="profile-field">
+      <label>Full Name</label>
+      <input type="text" id="profileFullName" maxlength="80" placeholder="Your full name" />
+    </div>
+    <div class="profile-field">
+      <label>Target Company</label>
+      <input type="text" id="profileTargetCompany" maxlength="80" placeholder="e.g. Google, Amazon…" />
+    </div>
+    <div class="profile-field">
+      <label>Bio</label>
+      <textarea id="profileBio" maxlength="200" rows="3" placeholder="A short line about yourself"></textarea>
+    </div>
+    <div class="profile-field">
+      <label>LinkedIn URL</label>
+      <input type="url" id="profileLinkedin" maxlength="200" placeholder="https://linkedin.com/in/…" />
+    </div>
+    <div class="profile-field">
+      <label>GitHub URL</label>
+      <input type="url" id="profileGithub" maxlength="200" placeholder="https://github.com/…" />
+    </div>
+    <button id="profileSaveDetails" class="practice-start">Save Details</button>
+    <p class="profile-msg" id="profileDetailsMsg"></p>
+  </div>
+</main>
+
+<!-- ADMIN VIEW -->
+<main class="board view hidden" id="view-admin">
+  <div class="board-head">
+    <h2>Admin</h2>
+    <span class="board-sub">review submissions and read user feedback</span>
+  </div>
+
+  <div class="admin-section-tabs">
+    <button class="filter-chip active" data-admin-section="submissions">Submissions</button>
+    <button class="filter-chip" data-admin-section="feedback">Feedback <span id="feedbackUnreadBadge" class="tab-count hidden">0</span></button>
+  </div>
+
+  <div id="adminSubmissionsSection">
+    <div class="admin-filter-bar">
+      <button class="filter-chip active" data-status="pending">Pending</button>
+      <button class="filter-chip" data-status="approved">Approved</button>
+      <button class="filter-chip" data-status="rejected">Rejected</button>
+    </div>
+    <div class="admin-list" id="adminList"></div>
+    <p class="progress-empty hidden" id="adminEmpty">Nothing here.</p>
+  </div>
+
+  <div id="adminFeedbackSection" class="hidden">
+    <div class="admin-list" id="feedbackAdminList"></div>
+    <p class="progress-empty hidden" id="feedbackAdminEmpty">No feedback yet.</p>
+  </div>
+</main>
+
+<!-- FEEDBACK: floating button, visible everywhere, no sign-in required -->
+<button class="feedback-fab" id="feedbackFab">💬 Feedback</button>
+
+<div class="auth-modal hidden" id="feedbackModal">
+  <div class="auth-modal-box">
+    <button class="auth-modal-close" id="feedbackModalClose">✕</button>
+    <h3 class="auth-modal-title">Send Feedback</h3>
+    <p class="feedback-sub">Bug, idea, or just a comment — goes straight to the person building this.</p>
+
+    <select id="feedbackCategory" class="feedback-select">
+      <option value="general">General feedback</option>
+      <option value="bug">Something's broken</option>
+      <option value="idea">Feature idea</option>
+    </select>
+    <textarea id="feedbackMessage" class="feedback-textarea" placeholder="What's on your mind?" rows="4"></textarea>
+    <input type="email" id="feedbackEmail" class="feedback-email-input" placeholder="Email (optional — only if you'd like a reply)" />
+
+    <button class="practice-start" id="feedbackSubmitBtn">Send Feedback</button>
+    <p class="auth-error hidden" id="feedbackError"></p>
+    <p class="feedback-success hidden" id="feedbackSuccess">Thanks — feedback sent!</p>
+  </div>
+</div>
+
 <footer class="footer">
   Data sourced from publicly reported LeetCode company tags. Frequencies are relative, not guarantees.
 </footer>
 
 <script src="data.js"></script>
 <script src="script.js"></script>
+<script src="auth.js"></script>
 </body>
 </html>

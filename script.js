@@ -179,24 +179,47 @@ searchInput.addEventListener("focus", () => {
   if (searchInput.value.trim()) searchSuggestions.classList.remove("hidden");
 });
 
+// Force-clear the search box on every load/back-forward-cache restore —
+// some browsers repopulate it from a remembered typed value regardless of
+// autocomplete="off", so we clear it ourselves rather than relying on that.
+function clearSearchBox() {
+  if (searchInput.value) {
+    searchInput.value = "";
+    searchQuery = "";
+  }
+}
+clearSearchBox();
+window.addEventListener("pageshow", clearSearchBox);
+
 renderStats();
 renderCompanies(RANKED);
 
 /* ==================== TAB SWITCHING ==================== */
 const navTabs = document.querySelectorAll(".nav-tab");
-const views = { board: document.getElementById("view-board"), patterns: document.getElementById("view-patterns"), compare: document.getElementById("view-compare"), practice: document.getElementById("view-practice"), plan: document.getElementById("view-plan"), progress: document.getElementById("view-progress") };
+const views = { board: document.getElementById("view-board"), patterns: document.getElementById("view-patterns"), compare: document.getElementById("view-compare"), practice: document.getElementById("view-practice"), plan: document.getElementById("view-plan"), progress: document.getElementById("view-progress"), about: document.getElementById("view-about"), leaderboard: document.getElementById("view-leaderboard"), submit: document.getElementById("view-submit"), profile: document.getElementById("view-profile"), admin: document.getElementById("view-admin"), editProfile: document.getElementById("view-edit-profile") };
 
 navTabs.forEach((tab) => {
   tab.addEventListener("click", () => {
     navTabs.forEach((t) => t.classList.remove("active"));
     tab.classList.add("active");
-    Object.values(views).forEach((v) => v.classList.add("hidden"));
-    views[tab.dataset.view].classList.remove("hidden");
+    Object.values(views).forEach((v) => v && v.classList.add("hidden"));
+    const activeView = views[tab.dataset.view];
+    activeView.classList.remove("hidden");
+    // a brief "pop in" animation + auto-scroll so the newly-opened section is
+    // immediately visible instead of sitting below the hero, unnoticed
+    activeView.classList.remove("view-pop");
+    void activeView.offsetWidth; // restart the animation even if clicked again
+    activeView.classList.add("view-pop");
+    activeView.scrollIntoView({ behavior: "smooth", block: "start" });
+
     if (tab.dataset.view === "board") detailPanel.classList.add("hidden");
     if (tab.dataset.view === "patterns") renderPatterns();
     if (tab.dataset.view === "compare") renderCompareOptions();
     if (tab.dataset.view === "plan") initPlanSetup();
     if (tab.dataset.view === "progress") renderProgress();
+    if (tab.dataset.view === "leaderboard" && typeof renderLeaderboard === "function") renderLeaderboard();
+    if (tab.dataset.view === "profile" && typeof renderProfile === "function") renderProfile();
+    if (tab.dataset.view === "admin" && typeof renderAdminPanel === "function") renderAdminPanel();
   });
 });
 
@@ -378,6 +401,12 @@ function toggleSolved(companyId, title) {
   const key = solvedKey(companyId, title);
   data[key] = !data[key];
   saveSolved(data);
+  // if signed in (auth.js), also sync this change to the cloud so it
+  // carries across devices and counts on the leaderboard
+  if (typeof pushSolvedToCloud === "function") pushSolvedToCloud(companyId, title, data[key]);
+  // only grow the streak when actually MARKING something solved, not when
+  // un-checking a box
+  if (data[key]) recordSolveForStreak();
   return data[key];
 }
 function solvedCountFor(companyId) {
@@ -529,7 +558,20 @@ function daysBetween(a, b) {
   return Math.round((d2 - d1) / (1000 * 60 * 60 * 24));
 }
 
-function updateStreak() {
+// Just show the streak we already have — visiting the site does NOT grow
+// the streak, only actually marking a problem solved does (see
+// recordSolveForStreak below, called from toggleSolved).
+function loadStreakDisplay() {
+  let data;
+  try { data = JSON.parse(localStorage.getItem(STREAK_KEY) || "null"); } catch (e) { data = null; }
+  const el = document.getElementById("streakCount");
+  if (el) el.textContent = data ? data.streak : 0;
+}
+
+// Called when the user marks a problem as solved (not when un-marking it).
+// Grows the streak at most once per calendar day, based on solving
+// activity rather than just opening the site.
+function recordSolveForStreak() {
   let data;
   try { data = JSON.parse(localStorage.getItem(STREAK_KEY) || "null"); } catch (e) { data = null; }
 
@@ -538,13 +580,14 @@ function updateStreak() {
   if (!data) {
     data = { lastVisit: today, streak: 1 };
   } else if (data.lastVisit === today) {
-    // already counted today, no change
+    // already solved something today — streak already counted, no change
+    return;
   } else {
     const gap = daysBetween(data.lastVisit, today);
     if (gap === 1) {
       data.streak += 1;
-    } else if (gap > 1) {
-      data.streak = 1;
+    } else {
+      data.streak = 1; // missed a day (or more) — restart
     }
     data.lastVisit = today;
   }
@@ -553,6 +596,49 @@ function updateStreak() {
 
   const el = document.getElementById("streakCount");
   if (el) el.textContent = data.streak;
+
+  // if signed in, push the freshly-grown streak to the cloud immediately
+  // (not just at next sign-in) so the leaderboard reflects it right away
+  if (typeof pushStreakToCloud === "function") pushStreakToCloud(data.streak, data.lastVisit);
 }
 
-updateStreak();
+loadStreakDisplay();
+
+/* ==================== THEME SWITCHER ==================== */
+const THEME_KEY = "crackboard_theme_v1";
+const themeToggleBtn = document.getElementById("themeToggleBtn");
+const themeMenu = document.getElementById("themeMenu");
+
+function applyTheme(theme) {
+  if (theme === "light" || theme === "dark") {
+    document.documentElement.setAttribute("data-theme", theme);
+  } else {
+    document.documentElement.removeAttribute("data-theme"); // "default" -> follow system, via CSS media query
+  }
+  document.querySelectorAll(".theme-option").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.theme === theme);
+  });
+  try { localStorage.setItem(THEME_KEY, theme); } catch (e) { /* ignore */ }
+}
+
+function loadTheme() {
+  let saved;
+  try { saved = localStorage.getItem(THEME_KEY); } catch (e) { saved = null; }
+  applyTheme(saved || "default");
+}
+
+themeToggleBtn.addEventListener("click", (e) => {
+  e.stopPropagation();
+  themeMenu.classList.toggle("hidden");
+});
+document.querySelectorAll(".theme-option").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    applyTheme(btn.dataset.theme);
+    themeMenu.classList.add("hidden");
+  });
+});
+document.addEventListener("click", (e) => {
+  if (!e.target.closest(".theme-switcher")) themeMenu.classList.add("hidden");
+});
+
+loadTheme();
